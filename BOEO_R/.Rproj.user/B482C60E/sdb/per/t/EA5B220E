@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1494522239143.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "EA5B220E",
+    "lastKnownWriteTime" : 3419473789575321445,
+    "last_content_update" : 1494522239143,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "1CCE01A0",
+        "caption" : "people_summary",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=people_summary&cache_key=1CCE01A0",
+        "displayedObservations" : 52,
+        "environment" : "",
+        "object" : "people_summary",
+        "preview" : 0,
+        "totalObservations" : 52,
+        "variables" : 5
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
