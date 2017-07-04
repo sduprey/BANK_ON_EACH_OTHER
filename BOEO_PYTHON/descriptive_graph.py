@@ -47,8 +47,8 @@ my_seed = 11181928
 random.seed(my_seed)
 np.random.seed(my_seed)
 
-show = True
-#show = False
+#show = True
+show = False
 
 df = pd.read_csv('../input/bsk.csv')
 
@@ -104,8 +104,45 @@ print(len(properties))
 print("Filling up the neighbours structure")
 for my_node in G.nodes():
     ############# we use a set to remove the duplicates
-    properties[my_node].setNeighbours(set(neighbours_dictionary[my_node]))
-    ratings[my_node] = properties[my_node].getRating()
+    node_neighbours = set(neighbours_dictionary[my_node])
+    properties[my_node].setNeighbours(node_neighbours)
+
+print("computing the adjacency matrix")
+#adjG = nx.adjacency_matrix(G, nodelist=None, weight='weight')
+#adjG = nx.adjacency_matrix(G,weight='weight')
+adjG = nx.adjacency_matrix(G)
+
+denseAdjG = np.array(adjG.todense())
+print(denseAdjG)
+print("test if the matrix is symmetrical")
+print((denseAdjG.transpose() == denseAdjG).all())
+np.save("../input/dense_adjacency_matrix.npy", denseAdjG)
+
+
+
+print("Initial page rank")
+print(nx.pagerank(G, alpha=0.86))
+
+
+print("Adding weights to the edges")
+for my_node in G.nodes():
+    ############# we use a set to remove the duplicates
+    node_neighbours = set(neighbours_dictionary[my_node])
+    for my_neighbour in node_neighbours :
+        G[my_node][my_neighbour]['weight'] = properties[my_node].getIsolatedRating()
+
+print("New page rank")
+ratingsNeighbourgsAverage = nx.pagerank(G, alpha=0.86)
+print(ratingsNeighbourgsAverage)
+
+
+for key, value in ratingsNeighbourgsAverage.iteritems():
+    rateToSet = int(value[0]*1000)
+    properties[key].setRating(rateToSet)
+    ratings[key] = rateToSet
+
+
+print(G.is_directed())
 
 print("Edges of graph: ")
 print(G.edges())
@@ -285,12 +322,21 @@ print("computing flows")
 
 start = d1
 stop = d3
-def computePaymentFlows(start, stop, defaultRate = 0.5, reshuffle = False):
-    print(nodesDataframe.names)
-    print(nodesDataframe.borrower)
-    nodesDataframe['defaulting'] = np.random.binomial(1, defaultRate, nodesDataframe.shape[0])
+def computePaymentFlows(start, stop, defaultRate = 0.02, reshuffle = False):
     if reshuffle:
+        n, p = 1, .2  # number of trials, probability of each trial
+        borrowerSVector = np.random.binomial(n, p, len(ratingsVector))
+        print("Actual simulated borrower amount among registrees")
+        print(borrowerSVector.sum() * 1.0 / borrowerSVector.shape[0])
+        # we reshuffle the defaulting people and the defaulting dates
         nodesDataframe['defaultdates'] = [random_date(d2, d4) for x in range(nodesDataframe.shape(0))]
+        nodesDataframe['borrower'] = pd.Series(borrowerSVector.tolist())
+
+        defaultingVector = np.random.binomial(1, defaultRate, nodesDataframe.borrower.sum())
+        print("Actual simulated default rate")
+        print(defaultingVector.sum() / defaultingVector.shape[0])
+        nodesDataframe['defaulting'] = 0
+        nodesDataframe['defaulting'][nodesDataframe.borrower == 1] = defaultingVector
 
     print("updating nodes properties")
     for index, row in nodesDataframe.iterrows():
@@ -414,30 +460,39 @@ def computePaymentFlows(start, stop, defaultRate = 0.5, reshuffle = False):
 
     return(all_flow_operation)
 
-all_flows_df = computePaymentFlows(start,stop,defaultRate = 0.5)
-print("testing the shape")
-print(all_flows_df.shape)
-print(all_flows_df.head())
+#############################
+#############################
+#############################
+############################# Back to the main script
 
-print(all_flows_df.head(50))
+nb_simulation = 100
+for my_simu in range(nb_simulation):
+    all_flows_df = computePaymentFlows(start,stop,defaultRate = 0.05, reshuffle= True)
+    print("testing the shape")
+    print(all_flows_df.shape)
+    print(all_flows_df.head())
 
-writeToDisk = False
-if writeToDisk:
-    print("writing flows to disk")
-    all_flows_df.to_csv('../input/flows_matrix.csv')
+    print(all_flows_df.head(50))
 
-print("simulating defaults over time and default probability reassessment")
-print("displaying the negative flows")
+    writeToDisk = False
+    if writeToDisk:
+        print("writing flows to disk")
+        all_flows_df.to_csv('../input/flows_matrix.csv')
 
-print("displaying the positive flows")
-print(all_flows_df.sum(numeric_only=True))
+    print("simulating defaults over time and default probability reassessment")
+    print("displaying the negative flows")
 
-plotly.offline.plot({
-    "data": [Scatter(x=all_flows_df.index, y=all_flows_df.positiveFlowsCumsum),
-             Scatter(x=all_flows_df.index, y=all_flows_df.negativeFlowsCumsum)],
-    "layout": Layout(title="Loan amortization")})
+    print("displaying the positive flows")
+    print(all_flows_df.sum(numeric_only=True))
 
-print("done first plotting")
+    plotly.offline.plot({
+        "data": [Scatter(x=all_flows_df.index, y=all_flows_df.positiveFlowsCumsum),
+                 Scatter(x=all_flows_df.index, y=all_flows_df.negativeFlowsCumsum)],
+        "layout": Layout(title="Loan amortization")})
+
+    print("done first plotting")
+
+
 
 
 
